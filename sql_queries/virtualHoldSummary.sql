@@ -4,6 +4,7 @@ select * from tmg_customer.dialHistory where created > '2017-11-22 14:00' and pr
 select * from tmg_customer.virtualhold where timestamp > '2017-11-22 14:00' order by timestamp asc;
 -- ....................................................
 
+
 select 
 	vh.id as vhId,
 	vh.timestamp as vhTimestamp,
