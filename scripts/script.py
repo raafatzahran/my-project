@@ -5,19 +5,22 @@ import sys, getopt
 def main(argv):
 	inputfile = ''
 	outputfile = ''
+	tablename=''
 	try:
-		opts, args = getopt.getopt(argv,"hi:o:",["ifile=","ofile="])
+		opts, args = getopt.getopt(argv,"hi:o:t:",["ifile=","ofile=","ntable="])
 	except getopt.GetoptError:
-		print 'test.py -i <inputfile> -o <outputfile>'
+		print 'test.py -i <inputfile> -o <outputfile> -t <tablename>'
 		sys.exit(2)
 	for opt, arg in opts:
 		if opt == '-h':
-			print 'test.py -i <inputfile> -o <outputfile>'
+			print 'test.py -i <inputfile> -o <outputfile> -t <tablename>'
 			sys.exit()
 		elif opt in ("-i", "--ifile"):
 			inputfile = arg
 		elif opt in ("-o", "--ofile"):
 			outputfile = arg
+		elif opt in ("-t", "--ntable"):
+			tablename = arg
 
 	lines = [line.rstrip('\n') for line in open(inputfile)]
 	names = lines.pop(0).split('\t')
@@ -25,10 +28,10 @@ def main(argv):
 	datasetNameOpen = "<dataset>"
 	datasetNameClose = "</dataset>"
 
-	tableNameOpen = "<queue_log"
+	tableNameOpen = "<" + tablename
 	tableNameClose = "/>"
 
-	dateColumns = ["givenToAgentTime","timestamp"]
+	dateColumns = ["givenToAgentTime","timestamp","callDate","created","TIME"]
 	datasetOutput = open(outputfile, 'w')
 	datasetOutput.write(datasetNameOpen + '\n')
 

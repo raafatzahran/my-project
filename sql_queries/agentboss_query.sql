@@ -1,0 +1,54 @@
+SELECT
+	MAX(CASE ql.EVENT
+	 WHEN 'ABANDON' THEN 'noAnswer'
+	 WHEN 'EXITEMPTY' THEN 'noAnswer'
+	 WHEN 'EXITWITHTIMEOUT' THEN 'timeout'
+	 WHEN 'EXITWITHKEY' THEN 'virtualHold'
+	 WHEN 'COMPLETEAGENT' THEN 'answer'
+	 WHEN 'COMPLETECALLER' THEN 'answer'
+	 WHEN 'TRANSFER' THEN 'answer'
+	 ELSE NULL END) AS state
+	, SUM(CASE ql.EVENT
+	 WHEN 'ABANDON' THEN ql.data3
+	 WHEN 'EXITEMPTY' THEN ql.data3
+	 WHEN 'EXITWITHTIMEOUT' THEN ql.data3
+	 WHEN 'EXITWITHKEY' THEN ql.data4
+	 WHEN 'CONNECT' THEN ql.data1
+	 ELSE 0 END) AS waittime
+	, SUM(CASE ql.EVENT
+	 WHEN 'COMPLETEAGENT' THEN ql.data2
+	 WHEN 'COMPLETECALLER' THEN ql.data2
+	 WHEN 'TRANSFER' THEN ql.data4
+	 ELSE 0 END) AS duration
+	, MAX(CASE ql.EVENT
+	 WHEN 'CONNECT' THEN ql.agent
+	 ELSE NULL END) AS agent
+	, MAX(CASE ql.EVENT
+	 WHEN 'CONNECT' THEN ql.data2
+	 ELSE NULL END) AS callIdTowardsAgent
+	, MAX(CASE ql.EVENT
+	 WHEN 'DID' THEN ql.data1
+	 ELSE NULL END) AS yourNumber
+	, MAX(CASE ql.EVENT
+	 WHEN 'ENTERQUEUE' THEN ql.TIME
+	 ELSE NULL END) AS callDate
+	, MAX(CASE ql.EVENT
+	 WHEN 'ENTERQUEUE' THEN ql.data2
+	 ELSE NULL END) AS peerNumber
+	, MAX(CASE ql.EVENT
+	 WHEN 'ENTERQUEUE' THEN ql.queuename
+	 ELSE NULL END) AS queueId
+FROM tmg_asterisk.queue_log ql
+	LEFT JOIN tmg_asterisk.queue_log q ON ql.callid=q.callid
+WHERE 
+	q.EVENT='ENTERQUEUE' 
+	AND ql.EVENT IN ('ENTERQUEUE','DID','CONNECT','COMPLETEAGENT','COMPLETECALLER','TRANSFER','EXITWITHKEY','ABANDON','EXITEMPTY','EXITWITHTIMEOUT') 
+	AND q.queuename NOT LIKE '1____' 
+	AND q.TIME > '2017-11-29 12:00:00.0' 
+	AND q.TIME < '2017-11-29 13:29:00.0' 
+	AND ql.TIME > '2017-11-29 12:00:00.0' 
+	AND ql.TIME < '2017-11-29 13:29:00.0' 
+GROUP BY ql.callId 
+HAVING state IS NOT NULL AND state IN ('answer','virtualHold','noAnswer','timeout')  
+ORDER BY callDate ASC 
+LIMIT 0,50;
