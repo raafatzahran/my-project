@@ -44,9 +44,9 @@ HAVING state IS NOT NULL
 AND state IN ('timeout', 'virtualHold')
 ORDER BY callDate ASC;
 -- ....................................................
-Select * FROM tmg_asterisk.queue_log ql IGNORE INDEX(EVENT) where ql.TIME > '2017-11-29 12:00'AND ql.TIME < '2017-11-29 23:00';
-select id, reference, created, callState, contactResponse, agent, callLength from tmg_customer.dialHistory where created > '2017-11-29 12:00' and created < '2017-11-29 23:00' and projectJob='StigProsjekt/VirtualHoldPhonect' order by created asc;
-select id, customerActivityId, timestamp, project, job, givenToAgent from tmg_customer.virtualhold where timestamp > '2017-11-29 12:00' and timestamp < '2017-11-29 23:00' order by timestamp asc;
+Select * FROM tmg_asterisk.queue_log ql IGNORE INDEX(EVENT) where ql.TIME > '2017-11-28 12:00'AND ql.TIME < '2017-11-29 23:00';
+select id, reference, created, callState, contactResponse, agent, callLength from tmg_customer.dialHistory where created > '2017-11-28 12:00' and created < '2017-11-29 23:00' and projectJob='StigProsjekt/VirtualHoldPhonect' order by created asc;
+select * from tmg_customer.virtualhold where timestamp > '2017-11-28 12:00' and timestamp < '2017-11-29 23:00' order by timestamp asc;
 -- ....................................................
 
 select 
@@ -104,10 +104,10 @@ select
 	) as dhContactResponse
 	from tmg_customer.virtualhold vh
 		left join tmg_customer.virtualhold vh2 on vh.customerActivityId = vh2.customerActivityId
-	where vh.timestamp > '2017-11-29 12:00' 
+	where vh.timestamp > '2017-11-28 12:00' 
 		and vh.timestamp <= '2017-11-29 23:00'
 		-- and vh2.customerActivityId = vh.customerActivityId
-		and (vh2.timestamp > vh.timestamp or vh2.timestamp = (select timestamp from tmg_customer.virtualhold vh3 where vh3.timestamp >= '2017-11-29 12:00' order by timestamp desc limit 1 ))
+		and (vh2.timestamp > vh.timestamp or vh2.timestamp = (select timestamp from tmg_customer.virtualhold vh3 where vh3.timestamp >= '2017-11-28 12:00' order by timestamp desc limit 1 ))
 	group by vh.id
 	order by vh.timestamp asc;
 

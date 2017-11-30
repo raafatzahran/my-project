@@ -31,7 +31,8 @@ def main(argv):
 	tableNameOpen = "<" + tablename
 	tableNameClose = "/>"
 
-	dateColumns = ["givenToAgentTime","timestamp","callDate","created","TIME"]
+	dateColumns = ["givenToAgentTime","timestamp","callDate","created","TIME", "processingAddressEnded", 
+			"dialStart", "dialEnd", "conversationStarted", "domain"]
 	datasetOutput = open(outputfile, 'w')
 	datasetOutput.write(datasetNameOpen + '\n')
 
@@ -39,10 +40,11 @@ def main(argv):
 		row = line.split('\t')
 		outputRow = tableNameOpen + '\t'
 		for col,name in zip(row,names):
-			if name not in dateColumns:
-				outputRow += name + ' = "' + col + '"' + '\t'
-			else:
-				outputRow += name + ' = ' + col + '\t'
+			if col != "NULL":
+				if name not in dateColumns:
+					outputRow += name + ' = "' + col + '"' + '\t'
+				else:
+					outputRow += name + ' = ' + col + '\t'
 		outputRow += tableNameClose + '\n'
 		datasetOutput.write(outputRow)	
 	datasetOutput.write(datasetNameClose + '\n')
