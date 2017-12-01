@@ -45,6 +45,8 @@ def main(argv):
 					outputRow += name + ' = "' + col + '"' + '\t'
 				else:
 					outputRow += name + ' = ' + col + '\t'
+			else:
+				outputRow += name + ' = "[NULL]"' + '\t'
 		outputRow += tableNameClose + '\n'
 		datasetOutput.write(outputRow)	
 	datasetOutput.write(datasetNameClose + '\n')
