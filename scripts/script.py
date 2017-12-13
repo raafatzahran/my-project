@@ -32,7 +32,7 @@ def main(argv):
 	tableNameClose = "/>"
 
 	dateColumns = ["givenToAgentTime","timestamp","callDate","created","TIME", "processingAddressEnded", 
-			"dialStart", "dialEnd", "conversationStarted", "domain"]
+			"dialStart", "dialEnd", "conversationStarted", "prospect", "sessionUpdated", "saleClosed"]
 	datasetOutput = open(outputfile, 'w')
 	datasetOutput.write(datasetNameOpen + '\n')
 

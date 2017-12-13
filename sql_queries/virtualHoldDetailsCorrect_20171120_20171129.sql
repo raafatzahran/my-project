@@ -90,7 +90,7 @@ ORDER BY dh.created  DESC LIMIT 1) AS dhContactResponse2,
 	) as waittime
 	from tmg_customer.virtualhold vh
 		left join tmg_customer.virtualhold vh2 on vh.customerActivityId = vh2.customerActivityId
-	where vh.timestamp > '2017-11-20 00:00' 
+	where vh.timestamp > '2017-09-20 00:00' 
 		and vh.timestamp <= '2017-11-30 23:59'
 		and (vh2.timestamp > vh.timestamp or vh2.timestamp = (select timestamp from tmg_customer.virtualhold vh3 where vh3.timestamp >= '2017-11-20 00:00' order by timestamp desc limit 1 ))
 	group by vh.id
