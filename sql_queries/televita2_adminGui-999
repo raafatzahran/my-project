@@ -1,0 +1,37 @@
+-- Salestatistics
+
+SELECT 
+        dp.project AS project, 
+		dp.job AS job, 
+		IFNULL(dp.domain, 'defaultDomain') AS domain, 
+		s.saleClosedBy AS agent, 
+        IFNULL(SUM(p.salesAmount), 0) AS salesAmount, 
+        COUNT(DISTINCT(s.id)) AS numOfCustSales, 
+        COUNT(DISTINCT(CONCAT_WS('-', s.id, s.sessionId))) AS numOfSessions, 
+        COUNT(DISTINCT(IF(lastContact.id, (CONCAT_WS('-', s.id, s.sessionId)), NULL)))AS numOfSessionsMan, 
+        SUM(p.quantum) AS numOfProducts, 
+		COUNT(s.backofficeVerified) AS numOfBackofficeVerified 
+		FROM tmg_customer.session s 
+			LEFT JOIN tmg_customer.product p ON s.id = p.id AND s.sessionId = p.sessionId 
+			LEFT JOIN tmg_customer.dialPlan dp ON s.id = dp.id 
+			LEFT JOIN( 
+						SELECT dh.id, 
+						dh.trafficCase 
+						FROM tmg_customer.dialHistory dh 
+						LEFT JOIN tmg_customer.dialHistory dh2 
+							ON dh.id = dh2.id 
+							AND dh.conversationStarted < dh2.conversationStarted 
+						WHERE dh.id IN( 
+							SELECT id FROM session WHERE saleClosed  BETWEEN '2018-01-09' AND '2018-01-10'
+						) 
+						AND dh2.id IS NULL 
+						AND dh.conversationStarted IS NOT NULL 
+						AND dh.conversationStarted BETWEEN '2018-01-09' AND '2018-01-10'    
+						AND dh.contactResponse IS NOT NULL 
+						AND dh.trafficCase = 'manual'
+			) AS lastContact ON s.id = lastContact.id 
+		WHERE s.saleClosed  BETWEEN '2018-01-09' AND '2018-01-10'
+		-- AND agent = 'AgnarThalseth'  
+		GROUP BY dp.project, dp.job, IFNULL(dp.domain, 'defaultDomain'), s.saleClosedBy;
+
+

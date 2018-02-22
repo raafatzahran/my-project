@@ -1,4 +1,4 @@
--- Update the new columns of the table virtualhold with the correspondings values from queue_log table
+-- This script update the new three columns of the table virtualhold with the corresponding values from queue_log table
 UPDATE
     tmg_customer.virtualhold vh, tmg_asterisk.queue_log ql
 SET

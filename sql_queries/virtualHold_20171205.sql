@@ -1,11 +1,11 @@
 select id, projectJob, reference, created, callState, contactResponse, callLength, customerId, dialHistoryIndex   
 from tmg_customer.dialHistory 
-where created > '2017-09-20 00:00' and created < '2017-11-30 23:59' 
+where created > '2017-09-18 00:00' and created < '2017-12-14 23:59' 
 order by created asc;
 
 select *
 from tmg_customer.virtualhold vh
-where vh.timestamp > '2017-09-20 00:00' and vh.timestamp <= '2017-11-30 23:59'
+where vh.timestamp > '2017-12-12 00:00' and vh.timestamp <= '2017-12-12 23:59'
 -- group by vh.id
 order by vh.timestamp asc
 LIMIT 0,1000;
@@ -62,10 +62,10 @@ select * from tmg_customer.product p
 WHERE p.id IN (5067158);
 
 select * from tmg_customer.virtualhold vh 
-WHERE vh.timestamp > '2017-09-01 00:00' and vh.timestamp <= '2017-12-11 23:59';
+WHERE vh.timestamp > '2017-09-18 00:00' and vh.timestamp <= '2017-12-14 23:59';
 
 select * from tmg_customer.virtualhold vh 
-WHERE vh.timestamp > '2017-09-01 00:00' and vh.timestamp <= '2017-12-11 23:59';
+WHERE vh.timestamp > '2017-09-01 00:00' and vh.timestamp <= '2017-12-15 23:59';
 
 SELECT extension,descr FROM asterisk.queues_config WHERE extension NOT LIKE '1____';
 

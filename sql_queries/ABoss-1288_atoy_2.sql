@@ -1,0 +1,199 @@
+-- try other ways to solve the problem
+SELECT 
+	MAX(CASE q.EVENT 
+			WHEN 'ABANDON' THEN 'noAnswer' 
+			WHEN 'EXITEMPTY' THEN 'noAnswer' 
+			WHEN 'EXITWITHTIMEOUT' THEN 'timeout' 
+			WHEN 'EXITWITHKEY' THEN 'virtualHold' 
+			WHEN 'COMPLETEAGENT' THEN 'answer' 
+			WHEN 'COMPLETECALLER' THEN 'answer' 
+			WHEN 'TRANSFER' THEN 'answer' ELSE NULL END) AS state, 
+
+	SUM(CASE q.EVENT 
+			WHEN 'ABANDON' THEN q.data3 
+			WHEN 'EXITEMPTY' THEN q.data3 
+			WHEN 'EXITWITHTIMEOUT' THEN q.data3 
+			WHEN 'EXITWITHKEY' THEN q.data4 
+			WHEN 'CONNECT' THEN q.data1 ELSE 0 END) AS waittime, 
+
+	SUM(CASE q.EVENT 
+			WHEN 'COMPLETEAGENT' THEN q.data2 
+			WHEN 'COMPLETECALLER' THEN q.data2 
+			WHEN 'TRANSFER' THEN q.data4 ELSE 0 END) AS duration, 
+
+	MAX(CASE q.EVENT 
+		WHEN 'CONNECT' THEN q.agent ELSE NULL END) AS agent, 
+
+	MAX(CASE q.EVENT 
+		WHEN 'CONNECT' THEN q.data2 ELSE NULL END) AS callIdTowardsAgent, 
+	
+	ql.callid AS originalCallId, 
+	
+	MAX(CASE q.EVENT 
+		WHEN 'DID' THEN q.data1 ELSE NULL END) AS yourNumber, 
+	MAX(CASE q.EVENT 
+		WHEN 'ENTERQUEUE' THEN q.TIME ELSE NULL END) AS callDate, 
+	MAX(CASE q.EVENT 
+		WHEN 'ENTERQUEUE' THEN q.data2 ELSE NULL END) AS peerNumber, 
+	MAX(CASE q.EVENT 
+		WHEN 'ENTERQUEUE' THEN q.queuename ELSE NULL END) AS queueId 
+
+FROM tmg_asterisk.queue_log ql IGNORE INDEX(EVENT) 
+	left JOIN tmg_asterisk.queue_log q IGNORE INDEX(EVENT) ON ql.callid=q.callid  -- AND ql.queuename=q.queuename
+
+WHERE 	ql.Event='ENTERQUEUE' AND 
+		q.Event IN ('ENTERQUEUE','DID','CONNECT','COMPLETEAGENT','COMPLETECALLER','TRANSFER','EXITWITHKEY','ABANDON','EXITEMPTY','EXITWITHTIMEOUT') AND 
+		ql.queuename = q.queuename  AND 
+		ql.queuename IN ('8001')AND 
+		ql.TIME > '2018-01-01 01:00:00.0' AND 
+		ql.TIME < '2018-02-01 00:59:00.0' 
+		 
+GROUP BY q.callid -- GROUP BY q1.queuename;
+HAVING state IS NOT NULL AND state IN('timeout','noAnswer')--  ('answer')-- 
+ORDER BY callDate DESC; 
+-- ----------------------
+-- Summary:
+-- ========
+
+select 
+	MAX(CASE q1.EVENT 
+			WHEN 'ABANDON' THEN 'noAnswer' 
+			WHEN 'EXITEMPTY' THEN 'noAnswer' 
+			WHEN 'EXITWITHTIMEOUT' THEN 'timeout' 
+			WHEN 'EXITWITHKEY' THEN 'virtualHold' 
+			WHEN 'COMPLETEAGENT' THEN 'answer' 
+			WHEN 'COMPLETECALLER' THEN 'answer' 
+			WHEN 'TRANSFER' THEN 'answer' ELSE NULL END) AS state, 
+	MAX(CASE q1.EVENT 
+		WHEN 'ENTERQUEUE' THEN q1.queuename ELSE NULL END) AS queueId,
+
+	q1.queuename AS groupValue,
+	SUM(q1.EVENT IN ('ABANDON', 'CONNECT','EXITWITHKEY','EXITEMPTY','EXITWITHTIMEOUT')) AS qenter,
+	SUM(CASE q1.EVENT WHEN 'ABANDON' THEN 1 ELSE 0 END) AS qabandon,
+	SUM(CASE q1.EVENT WHEN 'COMPLETEAGENT' THEN 1 WHEN 'COMPLETECALLER' THEN 1 ELSE 0 END) AS qconnected,
+	SUM(q1.EVENT='CONNECT' AND q1.data1<=20) AS qansweredwithinlimit,
+	SUM(CASE q1.EVENT WHEN 'EXITWITHKEY' THEN 1 ELSE 0 END) AS qvirtualhold,
+	MAX(CASE q1.EVENT 
+		WHEN 'CONNECT' THEN CAST(q1.data1 AS UNSIGNED) 
+		WHEN 'EXITWITHKEY' THEN CAST(q1.data4 AS UNSIGNED) ELSE 0 END) AS qmaxholdtime,
+	SUM(CASE q1.EVENT 
+		WHEN 'CONNECT' THEN CAST(q1.data1 AS UNSIGNED) 
+		WHEN 'EXITWITHKEY' THEN CAST(q1.data4 AS UNSIGNED) ELSE 0 END) AS qholdtime,
+	MAX(CASE q1.EVENT 
+		WHEN 'COMPLETEAGENT' THEN CAST(q1.data2 AS UNSIGNED) 
+		WHEN 'COMPLETECALLER' THEN CAST(q1.data2 AS UNSIGNED) 
+		WHEN 'TRANSFER' THEN CAST(q1.data4 AS UNSIGNED) ELSE 0 END) AS qmaxcalltime,
+	SUM(CASE q1.EVENT 
+		WHEN 'COMPLETEAGENT' THEN CAST(q1.data2 AS UNSIGNED) 
+		WHEN 'COMPLETECALLER' THEN CAST(q1.data2 AS UNSIGNED) 
+		WHEN 'TRANSFER' THEN CAST(q1.data4 AS UNSIGNED) ELSE 0 END) AS qcalltime,
+	MAX(CASE q1.EVENT 
+		WHEN 'ABANDON' THEN CAST(q1.data3  AS UNSIGNED) 
+		WHEN 'EXITEMPTY' THEN CAST(q1.data3  AS UNSIGNED) 
+		WHEN 'EXITWITHTIMEOUT' THEN CAST(q1.data3  AS UNSIGNED)  ELSE 0 END) AS qmaxabandontime,
+	SUM(CASE q1.EVENT 
+			WHEN 'ABANDON' THEN CAST(q1.data3  AS UNSIGNED) 
+			WHEN 'EXITEMPTY' THEN CAST(q1.data3  AS UNSIGNED) 
+			WHEN 'EXITWITHTIMEOUT' THEN CAST(q1.data3  AS UNSIGNED) ELSE 0 END) AS qabandontime 
+
+FROM queue_log q IGNORE INDEX(EVENT) USE INDEX(TIME) 
+	INNER JOIN queue_log q1 IGNORE INDEX(EVENT) ON q.callid=q1.callid 
+
+WHERE 	q.Event='ENTERQUEUE' AND 
+		q1.Event IN ('ABANDON', 'COMPLETEAGENT','COMPLETECALLER', 'CONNECT','EXITWITHKEY','EXITEMPTY','EXITWITHTIMEOUT', 'TRANSFER') AND 
+		q.queuename = q1.queuename  AND q.queuename IN ('8001')AND 
+		q.TIME > '2018-01-01 01:00:00.0' AND 
+		q.TIME < '2018-02-01 00:59:00.0' 
+GROUP BY q1.queuename;
+
+-- ---------------------------
+
+select *
+FROM tmg_asterisk.queue_log ql IGNORE INDEX(EVENT) 
+	INNER JOIN tmg_asterisk.queue_log q IGNORE INDEX(EVENT) ON ql.callid=q.callid  -- AND ql.queuename=q.queuename
+
+WHERE 	q.callid= '1516285115.1653' AND-- '1516953783.643' AND
+		ql.Event ='ENTERQUEUE' AND  -- ('ENTERQUEUE', 'DID', 'ABANDON', 'COMPLETEAGENT','COMPLETECALLER', 'CONNECT','EXITWITHKEY','EXITEMPTY','EXITWITHTIMEOUT', 'TRANSFER') AND-- 
+		q.Event IN ('ENTERQUEUE', 'DID', 'ABANDON', 'COMPLETEAGENT','COMPLETECALLER', 'CONNECT','EXITWITHKEY','EXITEMPTY','EXITWITHTIMEOUT', 'TRANSFER') AND 
+		-- ql.queuename = q.queuename  AND 
+		ql.queuename IN ('8003')AND 
+		ql.TIME > '2018-01-01 01:00:00.0' AND 
+		ql.TIME < '2018-02-01 00:59:00.0';
+
+select *
+FROM queue_log ql IGNORE INDEX(EVENT) 
+	LEFT JOIN queue_log q IGNORE INDEX(EVENT) ON ql.callid=q.callid AND ql.queuename=q.queuename
+
+WHERE	ql.callid= '1516285115.1653' AND
+		q.EVENT='ENTERQUEUE'  AND 
+		ql.EVENT IN ('ENTERQUEUE','DID','CONNECT','COMPLETEAGENT','COMPLETECALLER','TRANSFER','EXITWITHKEY','ABANDON','EXITEMPTY','EXITWITHTIMEOUT') AND 
+		ql.queuename IN ('8003') AND 
+		q.TIME > '2018-01-01 01:00:00.0' AND 
+		q.TIME < '2018-02-01 00:59:00.0'
+GROUP BY ql.callId ;
+
+select *
+FROM queue_log ql IGNORE INDEX(EVENT) 
+	LEFT JOIN queue_log q IGNORE INDEX(EVENT) ON ql.callid=q.callid 
+
+WHERE	ql.callid= '1516285115.1653' AND
+		q.EVENT='ENTERQUEUE'  AND 
+		ql.EVENT IN ('ENTERQUEUE','DID','CONNECT','COMPLETEAGENT','COMPLETECALLER','TRANSFER','EXITWITHKEY','ABANDON','EXITEMPTY','EXITWITHTIMEOUT') AND 
+		q.queuename IN ('8003') AND 
+		q.TIME > '2018-01-01 01:00:00.0' AND 
+		q.TIME < '2018-02-01 00:59:00.0';
+
+
+-- -----------------------------------------
+SELECT 
+	MAX(CASE q.EVENT 
+			WHEN 'ABANDON' THEN 'noAnswer' 
+			WHEN 'EXITEMPTY' THEN 'noAnswer' 
+			WHEN 'EXITWITHTIMEOUT' THEN 'timeout' 
+			WHEN 'EXITWITHKEY' THEN 'virtualHold' 
+			WHEN 'COMPLETEAGENT' THEN 'answer' 
+			WHEN 'COMPLETECALLER' THEN 'answer' 
+			WHEN 'TRANSFER' THEN 'answer' ELSE NULL END) AS state, 
+
+	SUM(CASE q.EVENT 
+			WHEN 'ABANDON' THEN q.data3 
+			WHEN 'EXITEMPTY' THEN q.data3 
+			WHEN 'EXITWITHTIMEOUT' THEN q.data3 
+			WHEN 'EXITWITHKEY' THEN q.data4 
+			WHEN 'CONNECT' THEN q.data1 ELSE 0 END) AS waittime, 
+
+	SUM(CASE q.EVENT 
+			WHEN 'COMPLETEAGENT' THEN q.data2 
+			WHEN 'COMPLETECALLER' THEN q.data2 
+			WHEN 'TRANSFER' THEN q.data4 ELSE 0 END) AS duration, 
+
+	MAX(CASE q.EVENT 
+		WHEN 'CONNECT' THEN q.agent ELSE NULL END) AS agent, 
+
+	MAX(CASE q.EVENT 
+		WHEN 'CONNECT' THEN q.data2 ELSE NULL END) AS callIdTowardsAgent, 
+	
+	ql.callid AS originalCallId, 
+	
+	MAX(CASE ql.EVENT 
+		WHEN 'DID' THEN ql.data1 ELSE NULL END) AS yourNumber, 
+	MAX(CASE ql.EVENT 
+		WHEN 'ENTERQUEUE' THEN ql.TIME ELSE NULL END) AS callDate, 
+	MAX(CASE ql.EVENT 
+		WHEN 'ENTERQUEUE' THEN ql.data2 ELSE NULL END) AS peerNumber, 
+	MAX(CASE ql.EVENT 
+		WHEN 'ENTERQUEUE' THEN ql.queuename ELSE NULL END) AS queueId 
+
+FROM tmg_asterisk.queue_log ql IGNORE INDEX(EVENT) 
+	INNER JOIN tmg_asterisk.queue_log q IGNORE INDEX(EVENT) ON ql.callid=q.callid  -- AND ql.queuename=q.queuename
+
+WHERE 	ql.Event IN('ENTERQUEUE', 'DID', 'ABANDON', 'COMPLETEAGENT','COMPLETECALLER', 'CONNECT','EXITWITHKEY','EXITEMPTY','EXITWITHTIMEOUT', 'TRANSFER') AND 
+		q.Event IN ('ABANDON', 'COMPLETEAGENT','COMPLETECALLER', 'CONNECT','EXITWITHKEY','EXITEMPTY','EXITWITHTIMEOUT', 'TRANSFER') AND 
+		ql.queuename = q.queuename  AND 
+		ql.queuename IN ('8500')AND 
+		ql.TIME > '2018-01-01 01:00:00.0' AND 
+		ql.TIME < '2018-02-01 00:59:00.0'
+		 
+GROUP BY q.callid -- GROUP BY q1.queuename;
+HAVING state IS NOT NULL AND state IN ('answer')-- ('timeout', 'noAnswer')-- 
+ORDER BY callDate DESC; 
